@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("JG.EventKit.Benchmarks")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e0a1a5533968b95ad2f4d0e900fc6c72f20fcc19")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+595c1361633827ab4103bb03856f721fb4918bb2")]
 [assembly: System.Reflection.AssemblyProductAttribute("JG.EventKit.Benchmarks")]
 [assembly: System.Reflection.AssemblyTitleAttribute("JG.EventKit.Benchmarks")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
