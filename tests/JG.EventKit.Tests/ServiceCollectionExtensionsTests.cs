@@ -160,4 +160,14 @@ public sealed class ServiceCollectionExtensionsTests
 
         act.Should().Throw<ArgumentNullException>();
     }
+
+    [Fact]
+    public void AddEventMiddleware_NullServices_ThrowsArgumentNullException()
+    {
+        IServiceCollection? services = null;
+
+        var act = () => services!.AddEventMiddleware<TestMiddleware>();
+
+        act.Should().Throw<ArgumentNullException>();
+    }
 }

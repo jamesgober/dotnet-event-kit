@@ -157,18 +157,21 @@ internal sealed class EventBus : IEventBus
     {
         await using var scope = _scopeFactory.CreateAsyncScope();
 
-        // Filter in place using the source array to avoid a List allocation.
-        int filteredCount = 0;
+        // Single pass: collect matching subscriptions into a right-sized array.
+        // This avoids a List allocation and ensures task/subscription indices stay aligned.
+        var filtered = new EventSubscription[subscriptions.Length];
+        int count = 0;
+
         for (int i = 0; i < subscriptions.Length; i++)
         {
             var sub = subscriptions[i];
             if (sub.Filter is null || sub.Filter(@event))
             {
-                filteredCount++;
+                filtered[count++] = sub;
             }
         }
 
-        if (filteredCount == 0)
+        if (count == 0)
         {
             await HandleDeadLetterAsync(@event, cancellationToken).ConfigureAwait(false);
             return;
@@ -183,19 +186,12 @@ internal sealed class EventBus : IEventBus
         try
         {
             var effectiveCt = linkedCts?.Token ?? cancellationToken;
-            var tasks = new Task[filteredCount];
-            int taskIndex = 0;
+            var tasks = new Task[count];
 
-            for (int i = 0; i < subscriptions.Length; i++)
+            for (int i = 0; i < count; i++)
             {
-                var sub = subscriptions[i];
-                if (sub.Filter is not null && !sub.Filter(@event))
-                {
-                    continue;
-                }
-
-                tasks[taskIndex++] = ExecuteHandlerWithThrottleAsync(
-                    scope.ServiceProvider, sub, @event, semaphore, linkedCts, effectiveCt);
+                tasks[i] = ExecuteHandlerWithThrottleAsync(
+                    scope.ServiceProvider, filtered[i], @event, semaphore, linkedCts, effectiveCt);
             }
 
             try
@@ -208,7 +204,7 @@ internal sealed class EventBus : IEventBus
             }
             catch
             {
-                HandleParallelErrors(tasks, subscriptions, typeof(TEvent));
+                HandleParallelErrors(tasks, filtered, typeof(TEvent));
             }
         }
         finally

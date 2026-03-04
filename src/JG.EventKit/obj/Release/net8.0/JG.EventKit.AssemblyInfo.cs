@@ -14,11 +14,11 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute(("A lightweight, high-performance in-process event bus for .NET. Strongly-typed eve" +
     "nts, async handlers, ordered dispatch, error isolation, and DI integration."))]
-[assembly: System.Reflection.AssemblyFileVersionAttribute("0.1.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.0+7e04f5435395d7b7ee8c0a4464d245e05e91cf7d")]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e6b1c9f68311779f30d327e581ca54d29538cb9c")]
 [assembly: System.Reflection.AssemblyProductAttribute("JG.EventKit")]
 [assembly: System.Reflection.AssemblyTitleAttribute("JG.EventKit")]
-[assembly: System.Reflection.AssemblyVersionAttribute("0.1.0.0")]
+[assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
 [assembly: System.Reflection.AssemblyMetadataAttribute("RepositoryUrl", "https://github.com/jamesgober/dotnet-event-kit")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("JG.EventKit.Tests")]
 

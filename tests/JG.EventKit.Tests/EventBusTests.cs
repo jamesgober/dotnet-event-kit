@@ -165,6 +165,19 @@ public sealed class EventBusTests
     }
 
     [Fact]
+    public async Task PublishAsync_WithFilterMatch_InvokesHandler()
+    {
+        var (bus, log) = CreateBus(s =>
+            s.AddEventHandler<TestEvent, RecordingHandler>(
+                filter: e => e.Value == "match"));
+
+        await bus.PublishAsync(new TestEvent("match"));
+
+        log.Entries.Should().ContainSingle()
+            .Which.Should().Be("RecordingHandler:match");
+    }
+
+    [Fact]
     public async Task PublishAsync_AllFiltered_InvokesDeadLetter()
     {
         DeadLetterEvent? captured = null;
@@ -294,6 +307,21 @@ public sealed class EventBusTests
         await cts.CancelAsync();
 
         var act = () => bus.PublishAsync(new TestEvent("cancel"), cts.Token).AsTask();
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public async Task PublishAsync_CancellationDuringHandler_ThrowsOperationCancelledException()
+    {
+        using var cts = new CancellationTokenSource();
+        var (bus, _) = CreateBus(s =>
+            s.AddEventHandler<TestEvent, SlowHandler>());
+
+        // Cancel after a brief delay so the handler is already running.
+        cts.CancelAfter(TimeSpan.FromMilliseconds(10));
+
+        var act = () => bus.PublishAsync(new TestEvent("mid-cancel"), cts.Token).AsTask();
 
         await act.Should().ThrowAsync<OperationCanceledException>();
     }
@@ -645,6 +673,38 @@ public sealed class EventBusTests
         var act = () => bus.PublishAsync(new TestEvent("par-stop")).AsTask();
 
         await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    #endregion
+
+    #region Publish — Parallel Filter + Error Interaction
+
+    [Fact]
+    public async Task PublishAsync_ParallelWithFilterAndFailure_LogsCorrectHandlerType()
+    {
+        // Regression: parallel dispatch with filters must align task indices with
+        // filtered subscription indices, so error logging reports the right handler.
+        var (bus, log) = CreateBus(
+            s =>
+            {
+                // Handler at index 0 is filtered out — should be skipped entirely.
+                s.AddEventHandler<TestEvent, RecordingHandler>(priority: 0, filter: _ => false);
+                // Handler at index 1 passes filter and fails.
+                s.AddEventHandler<TestEvent, FailingHandler>(priority: 10);
+                // Handler at index 2 passes filter and succeeds.
+                s.AddEventHandler<TestEvent, SecondHandler>(priority: 20);
+            },
+            o =>
+            {
+                o.OnError = EventErrorPolicy.LogAndContinue;
+                o.MaxParallelHandlers = 4;
+            });
+
+        await bus.PublishAsync(new TestEvent("filter-error"));
+
+        // SecondHandler should still run despite FailingHandler's error.
+        log.Entries.Should().ContainSingle()
+            .Which.Should().Be("SecondHandler:filter-error");
     }
 
     #endregion
