@@ -64,3 +64,4 @@ logs/
 # Docker
 .docker/
 docker-compose.override.yml
+.github/copilot-instructions.md
