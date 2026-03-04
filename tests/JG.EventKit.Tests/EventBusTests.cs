@@ -67,7 +67,7 @@ public sealed class EventBusTests
     {
         public async ValueTask HandleAsync(TestEvent @event, CancellationToken cancellationToken)
         {
-            await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(200, cancellationToken).ConfigureAwait(false);
             log.Add($"{nameof(SlowHandler)}:{@event.Value}");
         }
     }
@@ -315,11 +315,11 @@ public sealed class EventBusTests
     public async Task PublishAsync_CancellationDuringHandler_ThrowsOperationCancelledException()
     {
         using var cts = new CancellationTokenSource();
-        var (bus, _) = CreateBus(s =>
+        var (bus, log) = CreateBus(s =>
             s.AddEventHandler<TestEvent, SlowHandler>());
 
         // Cancel after a brief delay so the handler is already running.
-        cts.CancelAfter(TimeSpan.FromMilliseconds(10));
+        cts.CancelAfter(TimeSpan.FromMilliseconds(50));
 
         var act = () => bus.PublishAsync(new TestEvent("mid-cancel"), cts.Token).AsTask();
 
