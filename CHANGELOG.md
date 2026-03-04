@@ -7,7 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- _No changes yet._
+### Added
+- `IEventBus` interface with `PublishAsync<TEvent>` for strongly-typed event dispatch
+- `IEventHandler<TEvent>` interface for async event handler implementations
+- `IEventMiddleware` interface for wrapping event dispatch with cross-cutting concerns
+- `EventKitOptions` with configurable error policy, parallelism, and dead letter handling
+- `EventErrorPolicy` enum: `StopOnFirst`, `LogAndContinue`, `Aggregate`
+- `EventSubscription` metadata type with priority ordering and filter predicates
+- `DeadLetterEvent` wrapper for events with no registered handlers
+- `AddEventKit()` extension method for DI registration with options
+- `AddEventHandler<TEvent, THandler>()` with priority, filter, and lifetime support
+- `AddEventMiddleware<T>()` for pipeline middleware registration
+- Sequential and parallel handler dispatch with configurable concurrency
+- Handler priority ordering (lower values execute first)
+- Event filtering via per-handler predicates
+- Scoped handler resolution per publish for DI lifetime support
+- High-performance logging via source-generated `LoggerMessage` delegates
 
 ## [0.1.0] - YYYY-MM-DD
 

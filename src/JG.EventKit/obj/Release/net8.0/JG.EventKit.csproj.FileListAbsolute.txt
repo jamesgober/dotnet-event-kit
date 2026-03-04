@@ -1,0 +1,15 @@
+C:\Dev\libs\dotnet\dotnet-event-kit\src\JG.EventKit\obj\Release\net8.0\JG.EventKit.csproj.AssemblyReference.cache
+C:\Dev\libs\dotnet\dotnet-event-kit\src\JG.EventKit\obj\Release\net8.0\JG.EventKit.GeneratedMSBuildEditorConfig.editorconfig
+C:\Dev\libs\dotnet\dotnet-event-kit\src\JG.EventKit\obj\Release\net8.0\JG.EventKit.AssemblyInfoInputs.cache
+C:\Dev\libs\dotnet\dotnet-event-kit\src\JG.EventKit\obj\Release\net8.0\JG.EventKit.AssemblyInfo.cs
+C:\Dev\libs\dotnet\dotnet-event-kit\src\JG.EventKit\obj\Release\net8.0\JG.EventKit.csproj.CoreCompileInputs.cache
+C:\Dev\libs\dotnet\dotnet-event-kit\src\JG.EventKit\obj\Release\net8.0\JG.EventKit.sourcelink.json
+C:\Dev\libs\dotnet\dotnet-event-kit\src\JG.EventKit\obj\Release\net8.0\JG.EventKit.xml
+C:\Dev\libs\dotnet\dotnet-event-kit\src\JG.EventKit\bin\Release\net8.0\JG.EventKit.deps.json
+C:\Dev\libs\dotnet\dotnet-event-kit\src\JG.EventKit\bin\Release\net8.0\JG.EventKit.dll
+C:\Dev\libs\dotnet\dotnet-event-kit\src\JG.EventKit\bin\Release\net8.0\JG.EventKit.pdb
+C:\Dev\libs\dotnet\dotnet-event-kit\src\JG.EventKit\bin\Release\net8.0\JG.EventKit.xml
+C:\Dev\libs\dotnet\dotnet-event-kit\src\JG.EventKit\obj\Release\net8.0\JG.EventKit.dll
+C:\Dev\libs\dotnet\dotnet-event-kit\src\JG.EventKit\obj\Release\net8.0\refint\JG.EventKit.dll
+C:\Dev\libs\dotnet\dotnet-event-kit\src\JG.EventKit\obj\Release\net8.0\JG.EventKit.pdb
+C:\Dev\libs\dotnet\dotnet-event-kit\src\JG.EventKit\obj\Release\net8.0\ref\JG.EventKit.dll

@@ -1,0 +1,282 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>JG.EventKit</name>
+    </assembly>
+    <members>
+        <member name="T:JG.EventKit.IEventBus">
+            <summary>
+            Publishes events to registered handlers within the current process.
+            </summary>
+            <remarks>
+            <para>
+            Inject this interface into any service that needs to raise events. Events are dispatched
+            to handlers in priority order, filtered by any registered predicates, and processed
+            according to the configured <see cref="T:JG.EventKit.EventErrorPolicy"/>.
+            </para>
+            <para>
+            All implementations are thread-safe and support concurrent publish calls from multiple threads.
+            </para>
+            </remarks>
+        </member>
+        <member name="M:JG.EventKit.IEventBus.PublishAsync``1(``0,System.Threading.CancellationToken)">
+            <summary>
+            Publishes an event to all registered handlers for <typeparamref name="TEvent"/>.
+            </summary>
+            <typeparam name="TEvent">The event type. Must be a non-null reference or value type.</typeparam>
+            <param name="event">The event instance to publish.</param>
+            <param name="cancellationToken">Token to cancel the publish operation.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.ValueTask"/> that completes when all handlers have finished.</returns>
+            <exception cref="T:System.ArgumentNullException"><paramref name="event"/> is <c>null</c>.</exception>
+            <exception cref="T:System.OperationCanceledException">The <paramref name="cancellationToken"/> was cancelled.</exception>
+            <exception cref="T:System.AggregateException">
+            One or more handlers threw exceptions and the error policy is <see cref="F:JG.EventKit.EventErrorPolicy.Aggregate"/>.
+            </exception>
+        </member>
+        <member name="T:JG.EventKit.IEventHandler`1">
+            <summary>
+            Handles events of type <typeparamref name="TEvent"/>.
+            </summary>
+            <typeparam name="TEvent">The event type this handler processes.</typeparam>
+            <remarks>
+            Implementations are resolved from the DI container for each publish operation.
+            Handler lifetime (transient, scoped, singleton) is determined by the service registration.
+            </remarks>
+        </member>
+        <member name="M:JG.EventKit.IEventHandler`1.HandleAsync(`0,System.Threading.CancellationToken)">
+            <summary>
+            Handles the published event.
+            </summary>
+            <param name="event">The event to handle.</param>
+            <param name="cancellationToken">Token to cancel the handling operation.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.ValueTask"/> that completes when handling is finished.</returns>
+        </member>
+        <member name="T:JG.EventKit.EventDispatchDelegate">
+            <summary>
+            Delegate representing the next step in the event dispatch pipeline.
+            </summary>
+            <returns>A <see cref="T:System.Threading.Tasks.ValueTask"/> that completes when the remaining pipeline has finished.</returns>
+        </member>
+        <member name="T:JG.EventKit.IEventMiddleware">
+            <summary>
+            Middleware that wraps event dispatch for cross-cutting concerns such as
+            logging, timing, error handling, or retry logic.
+            </summary>
+            <remarks>
+            Middleware executes in registration order. Each middleware must call the <c>next</c> delegate
+            to continue the pipeline, or skip it to short-circuit dispatch.
+            Implementations are registered as singletons and must be thread-safe.
+            </remarks>
+        </member>
+        <member name="M:JG.EventKit.IEventMiddleware.InvokeAsync``1(``0,JG.EventKit.EventDispatchDelegate,System.Threading.CancellationToken)">
+            <summary>
+            Invoked for each event passing through the dispatch pipeline.
+            </summary>
+            <typeparam name="TEvent">The event type being dispatched.</typeparam>
+            <param name="event">The event being dispatched.</param>
+            <param name="next">Delegate to invoke the next middleware or the final handler dispatch.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.ValueTask"/> that completes when this middleware step is finished.</returns>
+        </member>
+        <member name="T:JG.EventKit.DeadLetterEvent">
+            <summary>
+            Wraps an event that was published but had no matching handlers.
+            Delivered to the <see cref="P:JG.EventKit.EventKitOptions.DeadLetterHandler"/> callback when configured.
+            </summary>
+        </member>
+        <member name="M:JG.EventKit.DeadLetterEvent.#ctor(System.Object,System.Type)">
+            <summary>
+            Initializes a new <see cref="T:JG.EventKit.DeadLetterEvent"/>.
+            </summary>
+        </member>
+        <member name="P:JG.EventKit.DeadLetterEvent.Event">
+            <summary>
+            The original event instance that had no handlers.
+            </summary>
+        </member>
+        <member name="P:JG.EventKit.DeadLetterEvent.EventType">
+            <summary>
+            The runtime type of the published event.
+            </summary>
+        </member>
+        <member name="P:JG.EventKit.DeadLetterEvent.Timestamp">
+            <summary>
+            UTC timestamp when the dead letter was created.
+            </summary>
+        </member>
+        <member name="T:JG.EventKit.EventErrorPolicy">
+            <summary>
+            Controls how the event bus handles handler exceptions during dispatch.
+            </summary>
+        </member>
+        <member name="F:JG.EventKit.EventErrorPolicy.StopOnFirst">
+            <summary>
+            Stop dispatching immediately when the first handler throws.
+            The exception propagates to the publisher.
+            </summary>
+        </member>
+        <member name="F:JG.EventKit.EventErrorPolicy.LogAndContinue">
+            <summary>
+            Log the exception and continue dispatching to remaining handlers.
+            No exception propagates to the publisher.
+            </summary>
+        </member>
+        <member name="F:JG.EventKit.EventErrorPolicy.Aggregate">
+            <summary>
+            Execute all handlers and collect exceptions. If any handlers fail,
+            throw an <see cref="T:System.AggregateException"/> containing all failures.
+            </summary>
+        </member>
+        <member name="T:JG.EventKit.EventKitOptions">
+            <summary>
+            Configuration options for the event bus.
+            </summary>
+        </member>
+        <member name="P:JG.EventKit.EventKitOptions.OnError">
+            <summary>
+            Gets or sets the error handling policy for handler exceptions.
+            Defaults to <see cref="F:JG.EventKit.EventErrorPolicy.LogAndContinue"/>.
+            </summary>
+        </member>
+        <member name="P:JG.EventKit.EventKitOptions.MaxParallelHandlers">
+            <summary>
+            Gets or sets the maximum number of handlers that execute in parallel per publish.
+            A value of <c>1</c> (the default) means sequential dispatch in priority order.
+            Values greater than <c>1</c> enable parallel dispatch with the specified concurrency limit.
+            </summary>
+            <exception cref="T:System.ArgumentOutOfRangeException">Value is less than 1.</exception>
+        </member>
+        <member name="P:JG.EventKit.EventKitOptions.DeadLetterHandler">
+            <summary>
+            Gets or sets a callback invoked when an event is published but no handlers match.
+            When <c>null</c> (the default), unhandled events are silently ignored.
+            </summary>
+        </member>
+        <member name="T:JG.EventKit.EventSubscription">
+            <summary>
+            Describes a handler registration for a specific event type, including
+            execution priority and an optional filter predicate.
+            </summary>
+        </member>
+        <member name="M:JG.EventKit.EventSubscription.#ctor(System.Type,System.Type,System.Int32,System.Func{System.Object,System.Boolean})">
+            <summary>
+            Initializes a new <see cref="T:JG.EventKit.EventSubscription"/>.
+            </summary>
+        </member>
+        <member name="P:JG.EventKit.EventSubscription.EventType">
+            <summary>
+            The event type this subscription targets.
+            </summary>
+        </member>
+        <member name="P:JG.EventKit.EventSubscription.HandlerType">
+            <summary>
+            The handler implementation type resolved from the DI container.
+            </summary>
+        </member>
+        <member name="P:JG.EventKit.EventSubscription.Priority">
+            <summary>
+            Execution priority. Lower values execute first. Handlers with equal priority
+            execute in registration order.
+            </summary>
+        </member>
+        <member name="P:JG.EventKit.EventSubscription.HasFilter">
+            <summary>
+            Returns <c>true</c> if this subscription includes a filter predicate that
+            can skip handler invocation for non-matching events.
+            </summary>
+        </member>
+        <member name="P:JG.EventKit.EventSubscription.Filter">
+            <summary>
+            The filter predicate, or <c>null</c> if no filter is configured.
+            </summary>
+        </member>
+        <member name="T:JG.EventKit.Internal.EventBus">
+            <summary>
+            Default event bus implementation. Resolves handlers from DI, applies middleware,
+            and dispatches events according to the configured error policy.
+            </summary>
+            <remarks>
+            This type is registered as a singleton. It creates a new <see cref="T:Microsoft.Extensions.DependencyInjection.IServiceScope"/>
+            per publish call to support scoped handler lifetimes.
+            </remarks>
+        </member>
+        <member name="M:JG.EventKit.Internal.EventBus.PublishAsync``1(``0,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:JG.EventKit.Internal.EventHandlerRegistry">
+            <summary>
+            Maintains a pre-sorted, cached lookup of handler subscriptions keyed by event type.
+            Thread-safe for concurrent reads after construction.
+            </summary>
+        </member>
+        <member name="M:JG.EventKit.Internal.EventHandlerRegistry.GetSubscriptions(System.Type)">
+            <summary>
+            Returns the priority-sorted subscriptions for <paramref name="eventType"/>,
+            or an empty array if no handlers are registered.
+            </summary>
+        </member>
+        <member name="T:JG.EventKit.Internal.LogMessages">
+            <summary>
+            High-performance log messages using source-generated LoggerMessage delegates.
+            </summary>
+        </member>
+        <member name="T:Microsoft.Extensions.DependencyInjection.EventKitServiceCollectionExtensions">
+            <summary>
+            Extension methods for registering EventKit services in a <see cref="T:Microsoft.Extensions.DependencyInjection.IServiceCollection"/>.
+            </summary>
+        </member>
+        <member name="M:Microsoft.Extensions.DependencyInjection.EventKitServiceCollectionExtensions.AddEventKit(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Action{JG.EventKit.EventKitOptions})">
+            <summary>
+            Adds the EventKit event bus and its dependencies to the service collection.
+            </summary>
+            <param name="services">The service collection.</param>
+            <param name="configure">Optional delegate to configure <see cref="T:JG.EventKit.EventKitOptions"/>.</param>
+            <returns>The service collection for chaining.</returns>
+            <exception cref="T:System.ArgumentNullException"><paramref name="services"/> is <c>null</c>.</exception>
+            <example>
+            <code>
+            services.AddEventKit(options =&gt;
+            {
+                options.OnError = EventErrorPolicy.LogAndContinue;
+                options.MaxParallelHandlers = 4;
+            });
+            </code>
+            </example>
+        </member>
+        <member name="M:Microsoft.Extensions.DependencyInjection.EventKitServiceCollectionExtensions.AddEventHandler``2(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Int32,System.Func{``0,System.Boolean},Microsoft.Extensions.DependencyInjection.ServiceLifetime)">
+            <summary>
+            Registers an event handler for <typeparamref name="TEvent"/>.
+            </summary>
+            <typeparam name="TEvent">The event type to handle.</typeparam>
+            <typeparam name="THandler">The handler implementation type.</typeparam>
+            <param name="services">The service collection.</param>
+            <param name="priority">
+            Execution priority. Lower values execute first. Defaults to <c>0</c>.
+            </param>
+            <param name="filter">
+            Optional predicate to filter events before handler invocation.
+            When provided, the handler is only invoked if the predicate returns <c>true</c>.
+            </param>
+            <param name="lifetime">
+            The DI lifetime for the handler. Defaults to <see cref="F:Microsoft.Extensions.DependencyInjection.ServiceLifetime.Transient"/>.
+            </param>
+            <returns>The service collection for chaining.</returns>
+            <exception cref="T:System.ArgumentNullException"><paramref name="services"/> is <c>null</c>.</exception>
+            <example>
+            <code>
+            services.AddEventHandler&lt;UserRegistered, WelcomeEmailHandler&gt;(priority: 10);
+            </code>
+            </example>
+        </member>
+        <member name="M:Microsoft.Extensions.DependencyInjection.EventKitServiceCollectionExtensions.AddEventMiddleware``1(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            Registers an event middleware that wraps all event dispatch.
+            Middleware executes in registration order.
+            </summary>
+            <typeparam name="TMiddleware">The middleware implementation type.</typeparam>
+            <param name="services">The service collection.</param>
+            <returns>The service collection for chaining.</returns>
+            <exception cref="T:System.ArgumentNullException"><paramref name="services"/> is <c>null</c>.</exception>
+        </member>
+    </members>
+</doc>

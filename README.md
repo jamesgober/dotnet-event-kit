@@ -41,6 +41,8 @@ builder.Services.AddEventKit(options =>
 public record UserRegistered(string UserId, string Email, DateTime Timestamp);
 
 // Subscribe a handler
+builder.Services.AddEventHandler<UserRegistered, WelcomeEmailHandler>();
+
 public class WelcomeEmailHandler : IEventHandler<UserRegistered>
 {
     public async ValueTask HandleAsync(UserRegistered e, CancellationToken ct)
