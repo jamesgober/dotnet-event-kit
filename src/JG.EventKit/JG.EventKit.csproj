@@ -17,7 +17,7 @@
 
   <PropertyGroup>
     <PackageId>JG.EventKit</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Authors>James Gober</Authors>
     <Description>A lightweight, high-performance in-process event bus for .NET. Strongly-typed events, async handlers, ordered dispatch, error isolation, and DI integration.</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>

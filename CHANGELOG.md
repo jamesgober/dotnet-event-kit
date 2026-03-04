@@ -7,7 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0] - 2026-03-04
+## [1.0.1] - 2026-03-04
+
+### Fixed
+- Improved test reliability for cancellation scenarios
+
+## [1.0.0] - 2023-10-05
 
 ### Added
 - `IEventBus` interface with `PublishAsync<TEvent>` for strongly-typed event dispatch
@@ -39,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial project scaffolding, documentation structure, and license
 
-[Unreleased]: https://github.com/jamesgober/dotnet-event-kit/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/jamesgober/dotnet-event-kit/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/jamesgober/dotnet-event-kit/releases/tag/v1.0.1
 [1.0.0]: https://github.com/jamesgober/dotnet-event-kit/releases/tag/v1.0.0
 [0.1.0]: https://github.com/jamesgober/dotnet-event-kit/releases/tag/v0.1.0
