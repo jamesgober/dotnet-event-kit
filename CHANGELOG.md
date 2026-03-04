@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0] - 2023-10-05
+## [1.0.0] - 2026-03-04
 
 ### Added
 - `IEventBus` interface with `PublishAsync<TEvent>` for strongly-typed event dispatch
