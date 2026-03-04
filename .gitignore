@@ -1,0 +1,66 @@
+# Build Output
+/bin/
+/obj/
+/out/
+/publish/
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+
+# Development
+/dev/
+dev/
+DIRECTIVE.md
+DIRECTIVES.md
+PLANNING.md
+
+# IDE & Editor
+/.vs/
+/.vscode/
+/.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.csproj.user
+
+# Rider
+.idea/
+*.sln.iml
+
+# Test Results
+/TestResults/
+/coverage/
+*.coverage
+*.coveragexml
+
+# OS Junk
+.DS_Store
+.Spotlight-V100
+.Trash-*
+.Trashes
+.directory
+.LSOverride
+.AppleDouble
+Desktop.ini
+ehthumbs.db
+Thumbs.db
+$RECYCLE.BIN/
+
+# Environment & Secrets
+.env
+*.pfx
+*.key
+appsettings.Development.json
+appsettings.Local.json
+
+# Logs
+*.log
+logs/
+
+# Docker
+.docker/
+docker-compose.override.yml
