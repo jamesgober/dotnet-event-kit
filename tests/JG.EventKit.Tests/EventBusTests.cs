@@ -47,12 +47,39 @@ public sealed class EventBusTests
         }
     }
 
+    private sealed class AnotherFailingHandler : IEventHandler<TestEvent>
+    {
+        public ValueTask HandleAsync(TestEvent @event, CancellationToken cancellationToken)
+        {
+            throw new ArgumentException($"Handler failed for {nameof(AnotherFailingHandler)}");
+        }
+    }
+
+    private sealed class CancellingHandler : IEventHandler<TestEvent>
+    {
+        public ValueTask HandleAsync(TestEvent @event, CancellationToken cancellationToken)
+        {
+            throw new OperationCanceledException("Handler cancelled itself");
+        }
+    }
+
     private sealed class SlowHandler(InvocationLog log) : IEventHandler<TestEvent>
     {
         public async ValueTask HandleAsync(TestEvent @event, CancellationToken cancellationToken)
         {
             await Task.Delay(50, cancellationToken).ConfigureAwait(false);
             log.Add($"{nameof(SlowHandler)}:{@event.Value}");
+        }
+    }
+
+    private sealed class ScopedInstanceTracker(InvocationLog log) : IEventHandler<TestEvent>
+    {
+        private readonly string _instanceId = Guid.NewGuid().ToString("N")[..8];
+
+        public ValueTask HandleAsync(TestEvent @event, CancellationToken cancellationToken)
+        {
+            log.Add($"ScopedInstance:{_instanceId}");
+            return default;
         }
     }
 
@@ -393,6 +420,243 @@ public sealed class EventBusTests
 
         captured.Should().NotBeNull();
         captured!.EventType.Should().Be(typeof(TestEvent));
+    }
+
+    #endregion
+
+    #region Publish — Error Policy Edge Cases
+
+    [Fact]
+    public async Task PublishAsync_Aggregate_MultipleFailures_CollectsAll()
+    {
+        var (bus, _) = CreateBus(
+            s =>
+            {
+                s.AddEventHandler<TestEvent, FailingHandler>(priority: 0);
+                s.AddEventHandler<TestEvent, AnotherFailingHandler>(priority: 10);
+            },
+            o => o.OnError = EventErrorPolicy.Aggregate);
+
+        var act = () => bus.PublishAsync(new TestEvent("multi")).AsTask();
+
+        var ex = await act.Should().ThrowAsync<AggregateException>();
+        ex.Which.InnerExceptions.Should().HaveCount(2);
+        ex.Which.InnerExceptions.Should().Contain(e => e is InvalidOperationException);
+        ex.Which.InnerExceptions.Should().Contain(e => e is ArgumentException);
+    }
+
+    [Fact]
+    public async Task PublishAsync_HandlerThrowsOperationCancelled_AlwaysPropagates()
+    {
+        var (bus, _) = CreateBus(
+            s => s.AddEventHandler<TestEvent, CancellingHandler>(),
+            o => o.OnError = EventErrorPolicy.LogAndContinue);
+
+        var act = () => bus.PublishAsync(new TestEvent("oce")).AsTask();
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    #endregion
+
+    #region Publish — Dead Letter Edge Cases
+
+    [Fact]
+    public async Task PublishAsync_DeadLetterHandlerThrows_LogsAndCompletes()
+    {
+        var (bus, _) = CreateBus(options: o =>
+        {
+            o.DeadLetterHandler = (_, _) => throw new InvalidOperationException("Dead letter boom");
+        });
+
+        Func<Task> act = async () => await bus.PublishAsync(new UnhandledEvent(99));
+
+        await act.Should().NotThrowAsync();
+    }
+
+    #endregion
+
+    #region Publish — Middleware Edge Cases
+
+    [Fact]
+    public async Task PublishAsync_MiddlewareShortCircuits_HandlersNotInvoked()
+    {
+        var log = new InvocationLog();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddEventKit();
+        services.AddSingleton(log);
+        services.AddEventHandler<TestEvent, RecordingHandler>();
+        services.AddSingleton<IEventMiddleware>(new ShortCircuitMiddleware(log));
+
+        var provider = services.BuildServiceProvider();
+        var bus = provider.GetRequiredService<IEventBus>();
+
+        await bus.PublishAsync(new TestEvent("blocked"));
+
+        log.Entries.Should().ContainSingle()
+            .Which.Should().StartWith("ShortCircuit:");
+    }
+
+    [Fact]
+    public async Task PublishAsync_MiddlewareThrows_PropagatesException()
+    {
+        var log = new InvocationLog();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddEventKit();
+        services.AddSingleton(log);
+        services.AddEventHandler<TestEvent, RecordingHandler>();
+        services.AddSingleton<IEventMiddleware>(new ThrowingMiddleware());
+
+        var provider = services.BuildServiceProvider();
+        var bus = provider.GetRequiredService<IEventBus>();
+
+        var act = () => bus.PublishAsync(new TestEvent("mw-fail")).AsTask();
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Middleware exploded");
+        log.Entries.Should().BeEmpty();
+    }
+
+    private sealed class ShortCircuitMiddleware(InvocationLog log) : IEventMiddleware
+    {
+        public ValueTask InvokeAsync<TEvent>(
+            TEvent @event, EventDispatchDelegate next, CancellationToken cancellationToken)
+            where TEvent : notnull
+        {
+            log.Add($"ShortCircuit:{@event}");
+            return default; // Don't call next()
+        }
+    }
+
+    private sealed class ThrowingMiddleware : IEventMiddleware
+    {
+        public ValueTask InvokeAsync<TEvent>(
+            TEvent @event, EventDispatchDelegate next, CancellationToken cancellationToken)
+            where TEvent : notnull
+        {
+            throw new InvalidOperationException("Middleware exploded");
+        }
+    }
+
+    #endregion
+
+    #region Publish — Scoped Handlers
+
+    [Fact]
+    public async Task PublishAsync_TransientHandler_NewInstancePerPublish()
+    {
+        var (bus, log) = CreateBus(s =>
+            s.AddEventHandler<TestEvent, ScopedInstanceTracker>(lifetime: ServiceLifetime.Transient));
+
+        await bus.PublishAsync(new TestEvent("a"));
+        await bus.PublishAsync(new TestEvent("b"));
+
+        log.Entries.Should().HaveCount(2);
+        var id1 = log.Entries[0].Split(':')[1];
+        var id2 = log.Entries[1].Split(':')[1];
+        id1.Should().NotBe(id2, "transient handlers should be different instances per publish");
+    }
+
+    #endregion
+
+    #region Publish — Registration Order Stability
+
+    [Fact]
+    public async Task PublishAsync_EqualPriority_MaintainsRegistrationOrder()
+    {
+        var (bus, log) = CreateBus(s =>
+        {
+            s.AddEventHandler<TestEvent, RecordingHandler>(priority: 0);
+            s.AddEventHandler<TestEvent, SecondHandler>(priority: 0);
+            s.AddEventHandler<TestEvent, ThirdHandler>(priority: 0);
+        });
+
+        await bus.PublishAsync(new TestEvent("stable"));
+
+        log.Entries.Should().HaveCount(3);
+        log.Entries[0].Should().StartWith("RecordingHandler:");
+        log.Entries[1].Should().StartWith("SecondHandler:");
+        log.Entries[2].Should().StartWith("ThirdHandler:");
+    }
+
+    #endregion
+
+    #region Publish — Parallel Error Policies
+
+    [Fact]
+    public async Task PublishAsync_ParallelLogAndContinue_CompletesAllHandlers()
+    {
+        var (bus, log) = CreateBus(
+            s =>
+            {
+                s.AddEventHandler<TestEvent, FailingHandler>(priority: 0);
+                s.AddEventHandler<TestEvent, RecordingHandler>(priority: 10);
+            },
+            o =>
+            {
+                o.OnError = EventErrorPolicy.LogAndContinue;
+                o.MaxParallelHandlers = 4;
+            });
+
+        await bus.PublishAsync(new TestEvent("par-continue"));
+
+        log.Entries.Should().ContainSingle()
+            .Which.Should().Be("RecordingHandler:par-continue");
+    }
+
+    [Fact]
+    public async Task PublishAsync_ParallelAggregate_CollectsAllExceptions()
+    {
+        var (bus, _) = CreateBus(
+            s =>
+            {
+                s.AddEventHandler<TestEvent, FailingHandler>(priority: 0);
+                s.AddEventHandler<TestEvent, AnotherFailingHandler>(priority: 10);
+            },
+            o =>
+            {
+                o.OnError = EventErrorPolicy.Aggregate;
+                o.MaxParallelHandlers = 4;
+            });
+
+        var act = () => bus.PublishAsync(new TestEvent("par-agg")).AsTask();
+
+        var ex = await act.Should().ThrowAsync<AggregateException>();
+        ex.Which.InnerExceptions.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task PublishAsync_ParallelStopOnFirst_ThrowsFirstException()
+    {
+        var (bus, _) = CreateBus(
+            s =>
+            {
+                s.AddEventHandler<TestEvent, FailingHandler>(priority: 0);
+                s.AddEventHandler<TestEvent, RecordingHandler>(priority: 10);
+            },
+            o =>
+            {
+                o.OnError = EventErrorPolicy.StopOnFirst;
+                o.MaxParallelHandlers = 4;
+            });
+
+        var act = () => bus.PublishAsync(new TestEvent("par-stop")).AsTask();
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    #endregion
+
+    #region Publish — Options Validation
+
+    [Fact]
+    public void EventBus_InvalidErrorPolicy_ThrowsOnConstruction()
+    {
+        var act = () => CreateBus(options: o => o.OnError = (EventErrorPolicy)999);
+
+        act.Should().Throw<ArgumentException>();
     }
 
     #endregion

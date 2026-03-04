@@ -3,6 +3,7 @@
     <Project Path="src/JG.EventKit/JG.EventKit.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/JG.EventKit.Benchmarks/JG.EventKit.Benchmarks.csproj" />
     <Project Path="tests/JG.EventKit.Tests/JG.EventKit.Tests.csproj" />
   </Folder>
 </Solution>

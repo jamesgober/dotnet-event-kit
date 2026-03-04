@@ -131,6 +131,11 @@
             <summary>
             Configuration options for the event bus.
             </summary>
+            <remarks>
+            Options are read once at startup when the <see cref="T:JG.EventKit.Internal.EventBus"/> is constructed.
+            Modifying properties after the event bus has been resolved from DI has no effect.
+            This type is not thread-safe; configure it during service registration only.
+            </remarks>
         </member>
         <member name="P:JG.EventKit.EventKitOptions.OnError">
             <summary>
@@ -176,7 +181,7 @@
         <member name="P:JG.EventKit.EventSubscription.Priority">
             <summary>
             Execution priority. Lower values execute first. Handlers with equal priority
-            execute in registration order.
+            maintain their original registration order (stable sort).
             </summary>
         </member>
         <member name="P:JG.EventKit.EventSubscription.HasFilter">
@@ -196,8 +201,14 @@
             and dispatches events according to the configured error policy.
             </summary>
             <remarks>
+            <para>
             This type is registered as a singleton. It creates a new <see cref="T:Microsoft.Extensions.DependencyInjection.IServiceScope"/>
             per publish call to support scoped handler lifetimes.
+            </para>
+            <para>
+            Thread-safe. Multiple threads can call <see cref="M:JG.EventKit.Internal.EventBus.PublishAsync``1(``0,System.Threading.CancellationToken)"/> concurrently
+            without external synchronization.
+            </para>
             </remarks>
         </member>
         <member name="M:JG.EventKit.Internal.EventBus.PublishAsync``1(``0,System.Threading.CancellationToken)">
@@ -205,14 +216,15 @@
         </member>
         <member name="T:JG.EventKit.Internal.EventHandlerRegistry">
             <summary>
-            Maintains a pre-sorted, cached lookup of handler subscriptions keyed by event type.
-            Thread-safe for concurrent reads after construction.
+            Maintains a pre-sorted, immutable lookup of handler subscriptions keyed by event type.
+            Thread-safe for concurrent reads. The internal dictionary is built once at construction
+            and never mutated.
             </summary>
         </member>
         <member name="M:JG.EventKit.Internal.EventHandlerRegistry.GetSubscriptions(System.Type)">
             <summary>
             Returns the priority-sorted subscriptions for <paramref name="eventType"/>,
-            or an empty array if no handlers are registered.
+            or a cached empty array if no handlers are registered.
             </summary>
         </member>
         <member name="T:JG.EventKit.Internal.LogMessages">

@@ -3,6 +3,11 @@ namespace JG.EventKit;
 /// <summary>
 /// Configuration options for the event bus.
 /// </summary>
+/// <remarks>
+/// Options are read once at startup when the <see cref="Internal.EventBus"/> is constructed.
+/// Modifying properties after the event bus has been resolved from DI has no effect.
+/// This type is not thread-safe; configure it during service registration only.
+/// </remarks>
 public sealed class EventKitOptions
 {
     private int _maxParallelHandlers = 1;

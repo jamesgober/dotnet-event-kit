@@ -10,7 +10,7 @@
     <projectUrl>https://github.com/jamesgober/dotnet-event-kit</projectUrl>
     <description>A lightweight, high-performance in-process event bus for .NET. Strongly-typed events, async handlers, ordered dispatch, error isolation, and DI integration.</description>
     <tags>events event-bus pubsub publish-subscribe in-process dotnet csharp</tags>
-    <repository type="git" url="https://github.com/jamesgober/dotnet-event-kit" commit="159bef32fe8d752dbff6cd6920d3831ac75240e8" />
+    <repository type="git" url="https://github.com/jamesgober/dotnet-event-kit" commit="7e04f5435395d7b7ee8c0a4464d245e05e91cf7d" />
     <dependencies>
       <group targetFramework="net8.0">
         <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="8.0.2" exclude="Build,Analyzers" />

@@ -16,4 +16,13 @@ internal static partial class LogMessages
         Exception exception,
         string handlerType,
         string eventType);
+
+    [LoggerMessage(
+        EventId = 2,
+        Level = LogLevel.Error,
+        Message = "Dead letter handler failed for event {EventType}.")]
+    public static partial void DeadLetterHandlerFailed(
+        this ILogger logger,
+        Exception exception,
+        string eventType);
 }

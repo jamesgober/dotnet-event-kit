@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyDescriptionAttribute(("A lightweight, high-performance in-process event bus for .NET. Strongly-typed eve" +
     "nts, async handlers, ordered dispatch, error isolation, and DI integration."))]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("0.1.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.0+159bef32fe8d752dbff6cd6920d3831ac75240e8")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.0+7e04f5435395d7b7ee8c0a4464d245e05e91cf7d")]
 [assembly: System.Reflection.AssemblyProductAttribute("JG.EventKit")]
 [assembly: System.Reflection.AssemblyTitleAttribute("JG.EventKit")]
 [assembly: System.Reflection.AssemblyVersionAttribute("0.1.0.0")]

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("JG.EventKit.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+159bef32fe8d752dbff6cd6920d3831ac75240e8")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7e04f5435395d7b7ee8c0a4464d245e05e91cf7d")]
 [assembly: System.Reflection.AssemblyProductAttribute("JG.EventKit.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("JG.EventKit.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

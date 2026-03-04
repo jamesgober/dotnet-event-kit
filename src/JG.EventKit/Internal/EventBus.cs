@@ -10,8 +10,14 @@ namespace JG.EventKit.Internal;
 /// and dispatches events according to the configured error policy.
 /// </summary>
 /// <remarks>
+/// <para>
 /// This type is registered as a singleton. It creates a new <see cref="IServiceScope"/>
 /// per publish call to support scoped handler lifetimes.
+/// </para>
+/// <para>
+/// Thread-safe. Multiple threads can call <see cref="PublishAsync{TEvent}"/> concurrently
+/// without external synchronization.
+/// </para>
 /// </remarks>
 internal sealed class EventBus : IEventBus
 {
@@ -39,6 +45,8 @@ internal sealed class EventBus : IEventBus
         _options = options.Value;
         _middleware = middleware as IEventMiddleware[] ?? middleware.ToArray();
         _logger = logger;
+
+        ValidateOptions(_options);
     }
 
     /// <inheritdoc />
@@ -148,9 +156,19 @@ internal sealed class EventBus : IEventBus
         where TEvent : notnull
     {
         await using var scope = _scopeFactory.CreateAsyncScope();
-        var filtered = FilterSubscriptions(@event, subscriptions);
 
-        if (filtered.Count == 0)
+        // Filter in place using the source array to avoid a List allocation.
+        int filteredCount = 0;
+        for (int i = 0; i < subscriptions.Length; i++)
+        {
+            var sub = subscriptions[i];
+            if (sub.Filter is null || sub.Filter(@event))
+            {
+                filteredCount++;
+            }
+        }
+
+        if (filteredCount == 0)
         {
             await HandleDeadLetterAsync(@event, cancellationToken).ConfigureAwait(false);
             return;
@@ -165,12 +183,19 @@ internal sealed class EventBus : IEventBus
         try
         {
             var effectiveCt = linkedCts?.Token ?? cancellationToken;
-            var tasks = new Task[filtered.Count];
+            var tasks = new Task[filteredCount];
+            int taskIndex = 0;
 
-            for (int i = 0; i < filtered.Count; i++)
+            for (int i = 0; i < subscriptions.Length; i++)
             {
-                tasks[i] = ExecuteHandlerWithThrottleAsync(
-                    scope.ServiceProvider, filtered[i], @event, semaphore, linkedCts, effectiveCt);
+                var sub = subscriptions[i];
+                if (sub.Filter is not null && !sub.Filter(@event))
+                {
+                    continue;
+                }
+
+                tasks[taskIndex++] = ExecuteHandlerWithThrottleAsync(
+                    scope.ServiceProvider, sub, @event, semaphore, linkedCts, effectiveCt);
             }
 
             try
@@ -183,7 +208,7 @@ internal sealed class EventBus : IEventBus
             }
             catch
             {
-                HandleParallelErrors(tasks, filtered, typeof(TEvent));
+                HandleParallelErrors(tasks, subscriptions, typeof(TEvent));
             }
         }
         finally
@@ -226,7 +251,7 @@ internal sealed class EventBus : IEventBus
         }
     }
 
-    private void HandleParallelErrors(Task[] tasks, List<EventSubscription> subscriptions, Type eventType)
+    private void HandleParallelErrors(Task[] tasks, EventSubscription[] subscriptions, Type eventType)
     {
         List<Exception>? aggregated = null;
 
@@ -276,39 +301,37 @@ internal sealed class EventBus : IEventBus
         }
     }
 
-    private static List<EventSubscription> FilterSubscriptions<TEvent>(
-        TEvent @event,
-        EventSubscription[] subscriptions)
-        where TEvent : notnull
-    {
-        var filtered = new List<EventSubscription>(subscriptions.Length);
-
-        for (int i = 0; i < subscriptions.Length; i++)
-        {
-            var sub = subscriptions[i];
-            if (sub.Filter is null || sub.Filter(@event))
-            {
-                filtered.Add(sub);
-            }
-        }
-
-        return filtered;
-    }
-
-    private ValueTask HandleDeadLetterAsync<TEvent>(TEvent @event, CancellationToken cancellationToken)
+    private async ValueTask HandleDeadLetterAsync<TEvent>(TEvent @event, CancellationToken cancellationToken)
         where TEvent : notnull
     {
         if (_options.DeadLetterHandler is null)
         {
-            return default;
+            return;
         }
 
-        var deadLetter = new DeadLetterEvent(@event, typeof(TEvent));
-        return _options.DeadLetterHandler(deadLetter, cancellationToken);
+        try
+        {
+            var deadLetter = new DeadLetterEvent(@event, typeof(TEvent));
+            await _options.DeadLetterHandler(deadLetter, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.DeadLetterHandlerFailed(ex, typeof(TEvent).Name);
+        }
     }
 
     private void LogHandlerError(Type handlerType, Type eventType, Exception exception)
     {
         _logger.HandlerFailed(exception, handlerType.Name, eventType.Name);
+    }
+
+    private static void ValidateOptions(EventKitOptions options)
+    {
+        if (!Enum.IsDefined(options.OnError))
+        {
+            throw new ArgumentException(
+                $"Invalid {nameof(EventErrorPolicy)} value: {options.OnError}.",
+                nameof(options));
+        }
     }
 }

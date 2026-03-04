@@ -32,9 +32,9 @@ public sealed class EventSubscription
 
     /// <summary>
     /// Execution priority. Lower values execute first. Handlers with equal priority
-    /// execute in registration order.
+    /// maintain their original registration order (stable sort).
     /// </summary>
-    public int Priority { get; }
+        public int Priority { get; }
 
     /// <summary>
     /// Returns <c>true</c> if this subscription includes a filter predicate that
