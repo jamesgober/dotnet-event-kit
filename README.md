@@ -64,7 +64,8 @@ public class RegistrationService(IEventBus bus)
 
 ## Documentation
 
-- **[API Reference](./docs/API.md)** — Full API documentation and examples
+- **[Getting Started](./docs/GETTING-STARTED.md)** — Setup, handlers, middleware, and full examples
+- **[API Reference](./docs/API.md)** — Complete API surface with type tables and code samples
 
 ## Contributing
 

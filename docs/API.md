@@ -80,6 +80,14 @@ public sealed class TimingMiddleware(ILogger<TimingMiddleware> logger) : IEventM
 
 ## Types
 
+### `EventDispatchDelegate`
+
+Delegate representing the next step in the event dispatch pipeline. Used by `IEventMiddleware`.
+
+```csharp
+public delegate ValueTask EventDispatchDelegate();
+```
+
 ### `EventKitOptions`
 
 Configuration for the event bus.

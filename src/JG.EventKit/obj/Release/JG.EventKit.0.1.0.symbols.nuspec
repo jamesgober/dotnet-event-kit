@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>JG.EventKit</id>
+    <version>0.1.0</version>
+    <authors>James Gober</authors>
+    <license type="expression">Apache-2.0</license>
+    <licenseUrl>https://licenses.nuget.org/Apache-2.0</licenseUrl>
+    <readme>README.md</readme>
+    <projectUrl>https://github.com/jamesgober/dotnet-event-kit</projectUrl>
+    <description>A lightweight, high-performance in-process event bus for .NET. Strongly-typed events, async handlers, ordered dispatch, error isolation, and DI integration.</description>
+    <tags>events event-bus pubsub publish-subscribe in-process dotnet csharp</tags>
+    <repository type="git" url="https://github.com/jamesgober/dotnet-event-kit" commit="159bef32fe8d752dbff6cd6920d3831ac75240e8" />
+    <dependencies>
+      <group targetFramework="net8.0">
+        <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="8.0.2" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Logging.Abstractions" version="8.0.2" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Options" version="8.0.2" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="C:\Dev\libs\dotnet\dotnet-event-kit\src\JG.EventKit\bin\Release\net8.0\JG.EventKit.pdb" target="lib\net8.0\JG.EventKit.pdb" />
+  </files>
+</package>

@@ -63,6 +63,11 @@
             "Microsoft.Extensions.Options": {
               "target": "Package",
               "version": "[8.0.2, )"
+            },
+            "Microsoft.SourceLink.GitHub": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[8.0.0, )"
             }
           },
           "imports": [
